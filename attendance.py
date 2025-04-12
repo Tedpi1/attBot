@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
 from collections import defaultdict
+import os
 
 
 class ReadEmployeeLog:
@@ -11,14 +12,21 @@ class ReadEmployeeLog:
         file_path = self.get_file_path()
         if file_path:
             self.process_file(file_path)
+            self.db.insert_attendance_records()
 
-    def get_file_path(self):
-        root = tk.Tk()
-        root.withdraw()
-        return filedialog.askopenfilename(
-            title="Select a log file",
-            filetypes=[("DAT files", "*.dat"), ("All files", "*.*")],
-        )
+
+def get_file_path(self):
+    # Get the directory where the script is running
+    project_dir = os.path.dirname(
+        os.path.abspath(__file__)
+    )  # ✅ Get current project folder
+
+    # Set the correct path to the default file inside attBot
+    default_file = os.path.join(project_dir, "BQC2243300093_attlog.dat")  # ✅ Corrected
+
+    # Check if the file exists
+    if os.path.exists(default_file):
+        return default_file
 
     def process_file(self, file_path):
         user_logs = []  # Store all records (no grouping)

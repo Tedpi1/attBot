@@ -38,7 +38,7 @@ class DatabaseHandler:
 
             # Insert query (each timestamp as a separate record)
             insert_query = """
-                INSERT INTO hrm_payroll_clockings (emp_id, clockedin_time)
+                INSERT INTO hrm_payroll_clockingss (emp_id, clockedin_time)
                 VALUES (%s, %s);
                 """
 
@@ -64,3 +64,52 @@ class DatabaseHandler:
 
         except Exception as e:
             print(f"❌ Error inserting data: {e}")
+
+    def insert_attendance_records(self):
+        if not self.dbConn:
+            print("❌ Database connection not established!")
+            return
+
+        try:
+            cursor = self.dbConn.cursor()
+
+            # SQL Query to fetch clock-in and clock-out records
+            fetch_query = """
+                SELECT 
+                    p.emp_id,  
+                    MIN(p.clockedin_time) AS off_clocked_in,  
+                    CASE  
+                        WHEN COUNT(p.clockedin_time) = 1 THEN NULL  
+                        ELSE MAX(p.clockedin_time)  
+                    END AS off_clocked_out  
+                FROM hrm_payroll_clockingss p  
+                WHERE p.clockedin_time IS NOT NULL  
+                GROUP BY p.emp_id, DATE(p.clockedin_time);
+            """
+
+            # Execute fetch query
+            cursor.execute(fetch_query)
+            records = cursor.fetchall()
+
+            if not records:
+                print("⚠️ No records found to insert.")
+                return
+
+            # Insert query
+            insert_query = """
+                INSERT INTO hrm_payroll_attendance_clocking_time (emp_id, off_clocked_in, off_clocked_out)
+                VALUES (%s, %s, %s);
+            """
+
+            # Insert each record
+            cursor.executemany(insert_query, records)
+
+            # Commit transaction
+            self.dbConn.commit()
+            print(f"✅ {cursor.rowcount} records inserted successfully!")
+
+        except mysql.connector.Error as err:
+            print(f"❌ Error inserting data: {err}")
+
+        finally:
+            cursor.close()
